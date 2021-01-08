@@ -1,19 +1,36 @@
 #!/bin/sh
 
-ipP= dig +short myip.opendns.com @resolver1.opendns.com #On récupére notre ip
+
+BOTNAME=SSH-Notify #Nom du webhook
+DATE=$(date +"%m-%d-%Y-%H:%M:%S") #Date + heure
+
+USER_IP=`echo $SSH_CLIENT | awk '{ print $1}'` #Ipv4 de l'utilisateur
+ipP= dig +short myip.opendns.com @resolver1.opendns.com  #Ip de la machine
 
 TMPFILE=$(mktemp)
 
-curl -s "http://ip-api.com/json/${ipP}" > $TMPFILE  #On recupére les infomation de notre ip
+
+curl -s "http://ip-api.com/json/${USER_IP}" > $TMPFILE 
  
 curl --silent -v \
 -H "Content-Type: application/json" \
 -X POST \
--d '{"username": "SSH-Notify-Login", "avatar_url": "https://cdn.pixabay.com/photo/2018/09/15/04/31/putty-3678638_960_720.png", 
+-d '{"username": "'"$BOTNAME"'", "avatar_url": "https://icons.iconarchive.com/icons/blackvariant/button-ui-system-apps/512/Terminal-icon.png", 
     "embeds": [{ 
-            "color": 15258703, 
-            "title": "SSH-INFORMATION",
-            "description":  "**Détails**\n :small_blue_diamond: Utilisateur: '\`$(whoami)\`',\n :small_blue_diamond: Host: '\`$(hostname -f)\`',\n\n **Information sur ladresse ip**\n :small_orange_diamond: IP:\nIPV4:'\`${USER_IP}\`' IP-PUBLIC:'\`$(dig +short myip.opendns.com @resolver1.opendns.com)\`',\n :small_orange_diamond: Appareil '\`$(dig -x $USER_IP +short)\`',\n :small_orange_diamond: Pays: '\`$(cat $TMPFILE | jq -r .country)\`' \n :small_orange_diamond: Region: '\`$(cat $TMPFILE | jq -r .regionName)\`',\n:small_orange_diamond: Ville: '\`$(cat $TMPFILE | jq -r .city)\`',\n:small_orange_diamond: ISP: '\`$(cat $TMPFILE | jq -r .isp)\`' "
+            "color": 12976176, 
+            "title": "SSH-Notification",
+            "thumbnail": {
+                "url": "https://icons.iconarchive.com/icons/blackvariant/button-ui-system-apps/512/Terminal-icon.png"
+            },
+            "author": {
+                "name": "'"$BOTNAME"'",
+                "icon_url": "https://icons.iconarchive.com/icons/blackvariant/button-ui-system-apps/512/Terminal-icon.png"
+            },
+            "footer": {
+                "icon_url": "https://icons.iconarchive.com/icons/blackvariant/button-ui-system-apps/512/Terminal-icon.png",
+                "text": "'"$BOTNAME"'"
+            },
+            "description":  "**Détails**\n \\👤 Utilisateur: '\`$(whoami)\`',\n \\🖥️ Host: '\`$(hostname)\`' \n \\🕐 Connexion: '\`$DATE\`',\n\n **Adresse IP**\n 📡 IP:\n > IPV4:'\`${USER_IP}\`' \n > IP-PUBLIC:'\`$(dig +short myip.opendns.com @resolver1.opendns.com)\`',\n \\🛰️ Appareil '\`$(dig -x $USER_IP +short)\`',\n \\🌎 Pays: '\`$(cat $TMPFILE | jq -r .country)\`' \n \\🌐 Region: '\`$(cat $TMPFILE | jq -r .regionName)\`',\n \\🔰 Ville: '\`$(cat $TMPFILE | jq -r .city)\`',\n \\📠 ISP: '\`$(cat $TMPFILE | jq -r .isp)\`' "
        }] 
     }' \
-urlwebhook > /dev/null 2>&1 
+https://discord.com/api/webhooks/796733904777379840/3PcW_K5riB9IhM7v2onZ5ibOnmTSiWE-jhwiMADiNu2mcpc8RxLe50DrQS0S9DoB_69R > /dev/null 2>&1 
