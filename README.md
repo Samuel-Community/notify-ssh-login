@@ -18,6 +18,10 @@
 4. Rendre le script exécutable `chmod +x /etc/profile.d/ssh-notif.sh`
 5. Redémarrer votre machine
 
+### 2. Aperçu 
+
+![Screenshot](https://imgur.com/fNWuSHT.png)
+
 
 ## Contributors
 
