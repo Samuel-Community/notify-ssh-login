@@ -1,4 +1,7 @@
-# notify-ssh-login
+<p align="center">
+	<img alt="SSH-NOTIFY" src="https://cdn.pixabay.com/photo/2018/09/15/04/31/putty-3678638_960_720.png">
+</p>
+
 
 ### Dépendances
 
@@ -9,10 +12,11 @@
 
 ### 1. Mise en place d'un webhook sur discord.
 
-1. [Configurer un webhook](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) dans le channel de texte Discord souhaité
+1. [Configurer un webhook](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) dans le channel Discord souhaité
 2. Télécharger (ou cloner) une copie de `ssh-notify.sh`
 3. Déplacer `ssh-notif.sh` dans `/etc/profile.d/` *mv /notify-ssh-login/ssh-notif.sh /etc/profile.d/*
-4. Redémarrer votre machine
+4. Rendre le script exécutable `chmod +x /etc/profile.d/ssh-notif.sh`
+5. Redémarrer votre machine
 
 
 ## Contributors
