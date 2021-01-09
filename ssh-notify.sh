@@ -9,26 +9,10 @@ TMPFILE=$(mktemp) #Creation d'un fichier temporaire dans /tmp
 
 IGNORED_USERS="git" #Définir la liste des utilisateurs à ignorer, espacer les utilisateur ou , pour séparer les utilisateurs
 
+WEBHOOK_ENABLED=1 #
+
 #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
 
-# Macros {
-
-	# String in array  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ |
-	function inArray() {
-		[[ `echo "${2}" | grep "\b${1}\b"` ]] && return 0
-	}
-
-	# Is a valid number  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ |
-	function isNumber() {
-		[[ "$1" -eq "$1" ]] && return 0
-	}
-
-	# Chech if the input is a even number  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ |
-	function isEven() {
-		return [ $((HISTORY_COUNTER%2)) -eq 0 ]
-	}
-
-	# Is IP valid  ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ |
 	function isValidIp() {
 		local ip=$1
 		local stat=1
@@ -45,14 +29,15 @@ IGNORED_USERS="git" #Définir la liste des utilisateurs à ignorer, espacer les 
 		return $stat
 	}
 
-#~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
-
 
 
 ME="`whoami`"
 
 IP=`echo $SSH_CLIENT | awk '{ ip = $1 } END { print ip }'`
 PTR=`dig +short -x ${IP} | sed s/\.$//`
+
+
+    if ! [[ $WEBHOOK_ENABLED -eq 0 ]] ; then
 
 curl -s "http://ip-api.com/json/${PTR}" > $TMPFILE 
 
@@ -63,6 +48,7 @@ curl --silent -v \
     "embeds": [{ 
             "color": 12976176, 
             "title": "SSH-Notification",
+            "timestamp": "'"${DATE}"'",
             "thumbnail": {
                 "url": "'"$AVATAR_URL"'"
             },
@@ -79,4 +65,8 @@ curl --silent -v \
     }' \
 $WEBHOOK > /dev/null 2>&1 
 
+  rm -rf ${TMPFILE} #On supprime le fichier temporaire
+  
+    fi 
 
+    exit
