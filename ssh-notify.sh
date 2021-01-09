@@ -1,5 +1,13 @@
 #!/bin/sh
 
+#
+# title             : ssh_notify
+# description       : Notification lors d'une connexion ssh.
+# author            : TutoRapide
+# date              : 08-01-2021
+# version           : 0.1.0
+# usage             : placer dans /etc/profile.d/ssh-notify.sh
+#===============================================================================
 
 BOTNAME=SSH-Notify #Nom du webhook
 DATE=$(date +"%m-%d-%Y-%H:%M:%S") #Date + heure
