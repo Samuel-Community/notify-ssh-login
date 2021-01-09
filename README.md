@@ -14,9 +14,9 @@
 
 1. [Configurer un webhook](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) dans le channel Discord souhaité
 2. Télécharger (ou cloner) une copie de `ssh-notify.sh`
-3. Déplacer `ssh-notif.sh` dans `/etc/profile.d/` *mv /notify-ssh-login/ssh-notif.sh /etc/profile.d/*
+3. Déplacer `ssh-notif.sh` dans `/etc/profile.d/` *sudi mv /notify-ssh-login/ssh-notif.sh /etc/profile.d/*
 4. Rendre le script exécutable `chmod +x /etc/profile.d/ssh-notif.sh`
-5. Redémarrer votre machine
+5. Redémarrer le service ssh *sudo systemctl restart sshd*
 
 ### 2. Aperçu 
 
