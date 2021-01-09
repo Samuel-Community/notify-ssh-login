@@ -1,5 +1,5 @@
 <p align="center">
-	<img alt="SSH-NOTIFY" src="https://cdn.pixabay.com/photo/2018/09/15/04/31/putty-3678638_960_720.png" width="400" height="200" >
+	<img alt="SSH-NOTIFY" src="https://cdn.pixabay.com/photo/2018/09/15/04/31/putty-3678638_960_720.png" width="460" height="220" >
 </p>
 
 
