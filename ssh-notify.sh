@@ -1,13 +1,20 @@
 #!/bin/sh
-
+#
+# title             : ssh_notify
+# description       : Notification des connexions ssh sur Discord.
+# author            : TutoRapide
+# date              : 2021-06-01
+# version           : 0.1.0
+# usage             : Dans dans le fichier dans /etc/profile.d/ssh-notify.sh
+#===============================================================================
 
 BOTNAME=SSH-Notify #Nom du webhook
 DATE=$(date +"%m-%d-%Y-%H:%M:%S") #Date + heure
 
 USER_IP=`echo $SSH_CLIENT | awk '{ print $1}'` #Ipv4 de l'utilisateur
-ipP= dig +short myip.opendns.com @resolver1.opendns.com  #Ip de la machine
+ipP= dig +short myip.opendns.com @resolver1.opendns.com > /dev/null 2>&1  #Ip de la machine et cache l'ip au lancement du script
 
-TMPFILE=$(mktemp)
+TMPFILE=$(mktemp) #Creation d'un fichier temporaire dans /tmp
 
 
 curl -s "http://ip-api.com/json/${USER_IP}" > $TMPFILE 
