@@ -1,4 +1,15 @@
-        # Config {
+#!/bin/sh
+
+#
+# title             : ssh_notify
+# description       : Notification lors d'une connexion ssh.
+# author            : TutoRapide
+# date              : 08-01-2021
+# version           : 0.1.0
+# usage             : placer dans /etc/profile.d/ssh-notify.sh
+#===============================================================================
+
+   # Config {
 
         BOTNAME=SSH-Notify #Nom du webhook
         AVATAR_URL="https://icons.iconarchive.com/icons/blackvariant/button-ui-system-apps/512/Terminal-icon.png"
@@ -9,62 +20,35 @@
 
         IGNORED_USERS="git" #Définir la liste des utilisateurs à ignorer, espacer les utilisateur ou , pour séparer les utilisateurs
 
-        WEBHOOK_ENABLED=1 #
 
         #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
 
-            function isValidIp() {
-                local ip=$1
-                local stat=1
+    IP=`echo $SSH_CLIENT | awk '{ ip = $1 } END { print ip }'` 
+    PTR=`dig +short -x ${IP} | sed s/\.$//`
 
-                if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-                    OIFS=$IFS
-                    IFS='.'
-                    ip=($ip)
-                    IFS=$OIFS
-                    [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
-                        && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
-                    stat=$?
-                fi
-                return $stat
-            }
+TMPFILE=$(mktemp)
 
-        ME="`whoami`" #On récupére notre utilisateur
-
-        IP=`echo $SSH_CLIENT | awk '{ ip = $1 } END { print ip }'` #On récupére notre adresse ip
-        PTR=`dig +short -x ${IP} | sed s/\.$//`#On récupére le nom d'hôte 
-
-
-        if ! [[ $WEBHOOK_ENABLED -eq 0 ]] ; then
-
-        curl -s "http://ip-api.com/json/${PTR}" > $TMPFILE 
-
-        curl --silent -v \
-        -H "Content-Type: application/json" \
-        -X POST \
-        -d '{"username": "'"$BOTNAME"'", "avatar_url": "'"$AVATAR_URL"'", 
-            "embeds": [{ 
-                    "color": 12976176, 
-                    "title": "SSH-Notification",
-                    "timestamp": "'"${DATE}"'",
-                    "thumbnail": {
-                        "url": "'"$AVATAR_URL"'"
-                    },
-                    "author": {
-                        "name": "'"$BOTNAME"'",
-                        "icon_url": "'"$AVATAR_URL"'"
-                    },
-                    "footer": {
-                        "icon_url": "'"$AVATAR_URL"'",
-                        "text": "'"$BOTNAME"'"
-                    },
-                    "description":  "**Détails**\n \\👤 Utilisateur: '\`${ME}\`',\n \\🖥️ Host: '\`$(hostname)\`' \n \\🕐 Connexion: '\`$DATE\`' ,\n\n **Adresse IP**\n 📡 IP: '\`${IP}\`',\n \\🌎 Pays: '\`$(cat $TMPFILE | jq -r .country)\`' \n \\🌐 Region: '\`$(cat $TMPFILE | jq -r .regionName)\`',\n \\🔰 Ville: '\`$(cat $TMPFILE | jq -r .city)\`',\n \\📠 ISP: '\`$(cat $TMPFILE | jq -r .isp)\`' "
-            }] 
-            }' \
-        $WEBHOOK > /dev/null 2>&1 
-
-        rm -rf ${TMPFILE} #On supprime le fichier temporaire
-        
-            fi 
-
-            exit
+curl -s "http://ip-api.com/json/${PTR}" > $TMPFILE 
+ 
+curl --silent -v \
+-H "Content-Type: application/json" \
+-X POST \
+-d '{"username": "'"$BOTNAME"'", "avatar_url": "'"$AVATAR_URL"'", 
+    "embeds": [{ 
+            "color": 12976176, 
+            "title": "SSH-Notification",
+            "thumbnail": {
+                "url": "'"$AVATAR_URL"'"
+            },
+            "author": {
+                "name": "'"$BOTNAME"'",
+                "icon_url": "'"$AVATAR_URL"'"
+            },
+            "footer": {
+                "icon_url": "'"$AVATAR_URL"'",
+                "text": "'"$BOTNAME"'"
+            },
+            "description":  "**Détails**\n \\👤 Utilisateur: '\`$(whoami)\`',\n \\🖥️ Host: '\`$(hostname)\`' \n \\🕐 Connexion: '\`$DATE\`',\n\n **Adresse IP**\n 📡 IP: '\`${IP}\`',\n \\🌎 Pays: '\`$(cat $TMPFILE | jq -r .country)\`' \n \\🌐 Region: '\`$(cat $TMPFILE | jq -r .regionName)\`',\n \\🔰 Ville: '\`$(cat $TMPFILE | jq -r .city)\`',\n \\📠 ISP: '\`$(cat $TMPFILE | jq -r .isp)\`' "
+       }] 
+    }' \
+$WEBHOOK > /dev/null 2>&1 
