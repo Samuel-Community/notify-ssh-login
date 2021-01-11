@@ -1,24 +1,27 @@
+<p align="center">
+<img alt="SSH-NOTIFY" src="https://i.ibb.co/JvngrD9/ssh.png" width="457" height="289" >
+</p>
+
 ### Dépendances
 
 - [curl](https://curl.se)
 - [jq](https://stedolan.github.io/jq/)
 
-## Usage
-
-### 1. Mise en place d'un webhook sur discord.
+### 1. Mise en place du script.
 
 1. [Configurer un webhook](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) dans le channel Discord souhaité
-2. Installer la package **JQ** et **curl**> *sudo apt install jq curl -y*
-3. wget https://github.com/T-TutoRapide/notify-ssh-login/ssh-notify.sh -O /etc/profile.d/ssh-notify.sh && chmod +x /etc/profile.d/ssh-notify.sh
+2. Installer les packages **JQ** et **curl** `sudo apt install jq curl -y`
+3. Télécharger le project`wget https://github.com/T-TutoRapide/notify-ssh-login/ssh-notify.sh -O /etc/profile.d/ssh-notify.sh && chmod +x /etc/profile.d/ssh-notify.sh`
 4. Rendre le script exécutable `chmod +x /etc/profile.d/ssh-notif.sh`
-5. Redémarrer le service ssh *sudo systemctl restart sshd*
+6. Ajouter le lien de votre **webhook discord** dans le script. Chercher la ligne **WEBHOOK="votre_url"** et remplacer **votre_url** par le lien du webhook.
+5. Redémarrer le service ssh **sudo systemctl restart sshd**
 
 ### 2. Aperçu 
 
-![Screenshot](https://imgur.com/fNWuSHT.png)
+![Screenshot](https://i.ibb.co/KNtrxb2/image.png)
 
 
-## Contributors
+## Contributeurs
 
 <table>
   <tr>
