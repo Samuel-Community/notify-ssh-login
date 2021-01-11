@@ -13,13 +13,10 @@
 
         BOTNAME=SSH-Notify #Nom du webhook
         AVATAR_URL="https://icons.iconarchive.com/icons/blackvariant/button-ui-system-apps/512/Terminal-icon.png"
-        WEBHOOK="https://discord.com/api/webhooks/796733904777379840/3PcW_K5riB9IhM7v2onZ5ibOnmTSiWE-jhwiMADiNu2mcpc8RxLe50DrQS0S9DoB_69R"
+        WEBHOOK="votre_url"
         DATE=$(date +"%m-%d-%Y-%H:%M:%S") #Date + heure
 
         TMPFILE=$(mktemp) #Creation d'un fichier temporaire dans /tmp
-
-        IGNORED_USERS="git" #Définir la liste des utilisateurs à ignorer, espacer les utilisateur ou , pour séparer les utilisateurs
-
 
         #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
 
