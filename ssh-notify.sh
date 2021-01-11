@@ -23,32 +23,42 @@
 
         #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
 
+
     IP=`echo $SSH_CLIENT | awk '{ ip = $1 } END { print ip }'` 
     PTR=`dig +short -x ${IP} | sed s/\.$//`
 
-TMPFILE=$(mktemp)
 
-curl -s "http://ip-api.com/json/${PTR}" > $TMPFILE 
- 
-curl --silent -v \
--H "Content-Type: application/json" \
--X POST \
--d '{"username": "'"$BOTNAME"'", "avatar_url": "'"$AVATAR_URL"'", 
-    "embeds": [{ 
-            "color": 12976176, 
-            "title": "SSH-Notification",
-            "thumbnail": {
-                "url": "'"$AVATAR_URL"'"
-            },
-            "author": {
-                "name": "'"$BOTNAME"'",
-                "icon_url": "'"$AVATAR_URL"'"
-            },
-            "footer": {
-                "icon_url": "'"$AVATAR_URL"'",
-                "text": "'"$BOTNAME"'"
-            },
-            "description":  "**Détails**\n \\👤 Utilisateur: '\`$(whoami)\`',\n \\🖥️ Host: '\`$(hostname)\`' \n \\🕐 Connexion: '\`$DATE\`',\n\n **Adresse IP**\n 📡 IP: '\`${IP}\`',\n \\🌎 Pays: '\`$(cat $TMPFILE | jq -r .country)\`' \n \\🌐 Region: '\`$(cat $TMPFILE | jq -r .regionName)\`',\n \\🔰 Ville: '\`$(cat $TMPFILE | jq -r .city)\`',\n \\📠 ISP: '\`$(cat $TMPFILE | jq -r .isp)\`' "
-       }] 
-    }' \
-$WEBHOOK > /dev/null 2>&1 
+curl -s "https://ipapi.co/${IP}/json/" > $TMPFILE 
+
+    ISP=`cat $TMPFILE | jq .org | sed s/' '//g | sed s/'"'//g`
+    REGION=`cat $TMPFILE | jq -r .region`
+    PAYS=`cat $TMPFILE | jq -r .country_name`
+
+        curl -i --silent \
+        -H "Accept: application/json" \
+        -H "Content-Type:application/json" \
+        -X POST \
+        --data  '{"username": "'"$BOTNAME"'", "avatar_url": "'"$AVATAR_URL"'", 
+            "embeds": [{
+                    "color": 12976176, 
+                    "title": "SSH-Notification",
+                    "thumbnail": { "url": "'"$AVATAR_URL"'" },
+                    "author": { "name": "'"$BOTNAME"'", "icon_url": "'"$AVATAR_URL"'" },
+                    "footer": { "icon_url": "'"$AVATAR_URL"'", "text": "'"$BOTNAME"'" },
+                    "description": "**Détails**\n \\👤 Utilisateur: '\`$(whoami)\`',\n \\🖥️ Host: '\`$(hostname)\`' \n \\🕐 Connexion: '\`$DATE\`',\n\n **Adresse IP**\n 📡 IP: '\`${IP}\`',\n \\🌎 Pays: '\`$PAYS\`',\n \\📠 ISP:  '\`${ISP}\`'"
+            }]
+            }' $WEBHOOK > /dev/null
+
+
+# On vient verifier que le fichier temporaire est bien présent puis on le supprime {
+
+checkdir() {
+    if [ -e $TMPFILE ]; then
+        rm -fr $TMPFILE
+    else
+        echo "le fichier $TMPFILE n'existe pas"
+    fi
+}
+checkdir
+
+#~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
