@@ -22,7 +22,7 @@ Ce script à pour but de vous signaler qui se connecte sur votre serveur via une
 8. Ajouter le lien de votre **webhook discord** dans le script.  
 Chercher la ligne **WEBHOOK="votre_url"** et remplacer **votre_url** par le lien du webhook. `sudo nano /etc/profile.d/ssh-notify.sh`.  
 Pour sauvegarder : **ctrl +x** taper **y**  
-9. Redémarrer le service ssh **sudo systemctl restart sshd**
+9. Redémarrer le service ssh `sudo systemctl restart sshd`.
 10. Et voilà le tour est joué.
 
 ### 2. Aperçu 
