@@ -20,7 +20,6 @@
 
         #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
 
-
     IP=`echo $SSH_CLIENT | awk '{ ip = $1 } END { print ip }'` 
     PTR=`dig +short -x ${IP} | sed s/\.$//`
 
