@@ -9,11 +9,12 @@ Ce script à pour but de vous signaler qui se connecte sur votre serveur via une
 - [curl](https://curl.se)
 - [jq](https://stedolan.github.io/jq/)
 - [git](https://git-scm.com)
+- [dnsutils](https://phoenixnap.com/kb/linux-dig-command-examples#:~:text=The%20dig%20command%20in%20Linux,used%20to%20display%20DNS%20information.)
 
 ### 1. Mise en place du script.
 
 1. [Configurer un webhook](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) dans le channel Discord souhaité
-2. Installer les packages **JQ** , **curl**, **git** `sudo apt install jq curl git -y`
+2. Installer les packages **JQ** , **curl**, **git** `sudo apt install jq curl git dnsutils -y`
 3. Clonez le repo `git clone https://github.com/T-TutoRapide/notify-ssh-login/`. 
 5. Se rendre dans le dossier **notify-ssh-login** `cd notify-ssh-login`.
 6. Déplacer le fichier **ssh-notify.sh** dans le dossier **/etc/profile.d/** `mv ssh-notify.sh /etc/profile.d/`
