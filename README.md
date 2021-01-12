@@ -2,6 +2,8 @@
 <img alt="SSH-NOTIFY" src="https://i.ibb.co/JvngrD9/ssh.png" width="457" height="289" >
 </p>
 
+Ce script à pour but de vous signaler qui sur ce connecter sur votre serveur via une notification sur discord. Des une connexion ssh sur votre serveur.
+
 ### Dépendances
 
 - [curl](https://curl.se)
