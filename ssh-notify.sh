@@ -24,12 +24,11 @@
     IP=`echo $SSH_CLIENT | awk '{ ip = $1 } END { print ip }'` 
     PTR=`dig +short -x ${IP} | sed s/\.$//`
 
+    curl -s "https://ipapi.co/${IP}/json/" > $TMPFILE 
 
-curl -s "https://ipapi.co/${IP}/json/" > $TMPFILE 
-
-    ISP=`cat $TMPFILE | jq .org | sed s/' '//g | sed s/'"'//g`
-    REGION=`cat $TMPFILE | jq -r .region`
-    PAYS=`cat $TMPFILE | jq -r .country_name`
+    ISP=`cat $TMPFILE | jq .org | sed s/' '//g | sed s/'"'//g` #On recupére l'opérateur. On supprimer un espace {sed s/' '//g}  est ajoute les double quote {sed s/'"'//g}
+    REGION=`cat $TMPFILE | jq -r .region` #On recupére la region
+    PAYS=`cat $TMPFILE | jq -r .country_name`#On recupére le pays
 
         curl -i --silent \
         -H "Accept: application/json" \
