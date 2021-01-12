@@ -15,9 +15,9 @@
 3. Clonez le repo `git clone https://github.com/T-TutoRapide/notify-ssh-login/`. 
 5. Ce rendre dans le dossier **notify-ssh-login** `cd notify-ssh-login`.
 6. Déplacer le fichier **ssh-notify.sh** dans le dossier **/etc/profile.d/** `mv ssh-notify.sh /etc/profile.d/`
-7. Rendre le script exécutable `chmod +x /etc/profile.d/ssh-notif.sh`
+7. Rendre le script exécutable `chmod +x /etc/profile.d/ssh-notify.sh`
 8. Ajouter le lien de votre **webhook discord** dans le script.
-Chercher la ligne **WEBHOOK="votre_url"** et remplacer **votre_url** par le lien du webhook. `sudo nano /etc/profile.d/ssh-notif.sh`. 
+Chercher la ligne **WEBHOOK="votre_url"** et remplacer **votre_url** par le lien du webhook. `sudo nano /etc/profile.d/ssh-notify.sh`. 
 Pour sauvegarder: **ctrl +x** taper **y**
 9. Redémarrer le service ssh **sudo systemctl restart sshd**
 10. Et voila le tour est joué.
