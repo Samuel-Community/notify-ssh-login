@@ -9,6 +9,8 @@
 # usage             : placer dans /etc/profile.d/ssh-notify.sh
 #===============================================================================
 
+
+#test
    # Config {
 
         BOTNAME=SSH-Notify #Nom du webhook
