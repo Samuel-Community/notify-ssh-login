@@ -9,21 +9,20 @@
 # usage             : placer dans /etc/profile.d/ssh-notify.sh
 #===============================================================================
 
-   # Config {
+# Config {
 
         BOTNAME=SSH-Notify #Nom du webhook
         AVATAR_URL="https://icons.iconarchive.com/icons/blackvariant/button-ui-system-apps/512/Terminal-icon.png"
         WEBHOOK="votre_url"
-        DATE=$(date +"%m-%d-%Y-%H:%M:%S") #Date + heure
+        DATE=$(date +"%d-%m-%Y-%H:%M:%S") #Date + heure
 
         TMPFILE=$(mktemp) #Creation d'un fichier temporaire dans /tmp
 
-        #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
+#~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
 
     IP=`echo $SSH_CLIENT | awk '{ ip = $1 } END { print ip }'`
 
     curl -s "https://ipapi.co/${IP}/json/" > $TMPFILE
-
 
     #On recupére l'opérateur. On supprimer un espace {sed s/' '//g}  est ajoute les double quote {sed s/'"'//g}
 
@@ -31,6 +30,9 @@
 
     #On recupére le pays
     PAYS=`cat $TMPFILE | jq -r .country_name`
+
+    #On recupére la ville
+    VILLE=`cat $TMPFILE | jq -r .city`
 
     # On récupère le timestamp actuel
     getCurrentTimestamp() { date -u --iso-8601=seconds; };
@@ -48,11 +50,10 @@
                 "thumbnail": { "url": "'"$AVATAR_URL"'" },
                 "author": { "name": "'"$BOTNAME"'", "icon_url": "'"$AVATAR_URL"'" },
                 "footer": { "icon_url": "'"$AVATAR_URL"'", "text": "'"$BOTNAME"'" },
-                "description": "**Détails**\n \\👤 Utilisateur: '\`$(whoami)\`',\n \\🖥️ Host: '\`$(hostname)\`' \n \\🕐 Connexion: '\`$DATE\`',\n\n **Adresse IP**\n 📡 IP: '\`${IP}\`',\n \\🌎 Pays: '\`$PAYS\`',\n \\📠 ISP:  '\`${ISP}\`'",
+                "description": "**Détails**\n \\👤 Utilisateur: '\`$(whoami)\`' \n \\🖥️ Host: '\`$(hostname)\`' \n \\🕐 Connexion: '\`$DATE\`' \n\n **Adresse IP**\n \\📡 IP: '\`${IP}\`' \n \\🌎 Pays: '\`$PAYS\`' \n \\🏙️ Ville: '\`$VILLE\`' \n \\📠 ISP: '\`${ISP}\`'",
                 "timestamp": "'$(getCurrentTimestamp)'"
             }]
         }' $WEBHOOK > /dev/null
-
 
 # On vient verifier que le fichier temporaire est bien présent puis on le supprime {
 
