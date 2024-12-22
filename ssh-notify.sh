@@ -1,69 +1,67 @@
-#!/bin/sh
+#!/bin/bash
 
-#
+#===============================================================================
 # title             : ssh_notify
-# description       : Notification lors d'une connexion ssh.
+# description       : Notifie sur Discord lors d'une connexion SSH.
 # author            : TutoRapide
-# date              : 08-01-2021
-# version           : 0.1.0
+# date              : 08-01-2021 (mis à jour)
+# version           : 1.0.0
 # usage             : placer dans /etc/profile.d/ssh-notify.sh
 #===============================================================================
 
-# Config {
+# Configuration
+BOTNAME="SSH-Notify"
+AVATAR_URL="https://icons.iconarchive.com/icons/blackvariant/button-ui-system-apps/512/Terminal-icon.png"
+WEBHOOK="votre_url"
+DATE=$(date +"%d-%m-%Y %H:%M:%S")
 
-        BOTNAME=SSH-Notify #Nom du webhook
-        AVATAR_URL="https://icons.iconarchive.com/icons/blackvariant/button-ui-system-apps/512/Terminal-icon.png"
-        WEBHOOK="votre_url"
-        DATE=$(date +"%d-%m-%Y-%H:%M:%S") #Date + heure
+# Vérifie les dépendances
+if ! command -v curl &> /dev/null || ! command -v jq &> /dev/null; then
+    echo "Erreur : Les commandes 'curl' et 'jq' doivent être installées." >&2
+    exit 1
+fi
 
-        TMPFILE=$(mktemp) #Creation d'un fichier temporaire dans /tmp
+# Récupération des informations
+IP=$(echo "$SSH_CLIENT" | awk '{print $1}')
+if [ -z "$IP" ]; then
+    echo "Erreur : Impossible de récupérer l'adresse IP." >&2
+    exit 1
+fi
 
-#~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
+TMPFILE=$(mktemp)
+curl -s "https://ipapi.co/${IP}/json/" -o "$TMPFILE"
 
-    IP=`echo $SSH_CLIENT | awk '{ ip = $1 } END { print ip }'`
+# Extraire les données de localisation
+ISP=$(jq -r '.org // "Inconnu"' "$TMPFILE")
+PAYS=$(jq -r '.country_name // "Inconnu"' "$TMPFILE")
+VILLE=$(jq -r '.city // "Inconnu"' "$TMPFILE")
 
-    curl -s "https://ipapi.co/${IP}/json/" > $TMPFILE
+# Prépare le timestamp ISO
+getCurrentTimestamp() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
 
-    #On recupére l'opérateur. On supprimer un espace {sed s/' '//g}  est ajoute les double quote {sed s/'"'//g}
-
-    ISP=`cat $TMPFILE | jq .org | sed s/' '//g | sed s/'"'//g`
-
-    #On recupére le pays
-    PAYS=`cat $TMPFILE | jq -r .country_name`
-
-    #On recupére la ville
-    VILLE=`cat $TMPFILE | jq -r .city`
-
-    # On récupère le timestamp actuel
-    getCurrentTimestamp() { date -u --iso-8601=seconds; };
-
-        curl -i --silent \
-        -H "Accept: application/json" \
-        -H "Content-Type:application/json" \
-        -X POST \
-        --data  '{
-            "username": "'"$BOTNAME"'",
-            "avatar_url": "'"$AVATAR_URL"'",
-            "embeds": [{
-                "color": 12976176,
-                "title": "SSH-Notification",
-                "thumbnail": { "url": "'"$AVATAR_URL"'" },
-                "author": { "name": "'"$BOTNAME"'", "icon_url": "'"$AVATAR_URL"'" },
-                "footer": { "icon_url": "'"$AVATAR_URL"'", "text": "'"$BOTNAME"'" },
-                "description": "**Détails**\n \\👤 Utilisateur: '\`$(whoami)\`' \n \\🖥️ Host: '\`$(hostname)\`' \n \\🕐 Connexion: '\`$DATE\`' \n\n **Adresse IP**\n \\📡 IP: '\`${IP}\`' \n \\🌎 Pays: '\`$PAYS\`' \n \\🏙️ Ville: '\`$VILLE\`' \n \\📠 ISP: '\`${ISP}\`'",
-                "timestamp": "'$(getCurrentTimestamp)'"
-            }]
-        }' $WEBHOOK > /dev/null
-
-# On vient verifier que le fichier temporaire est bien présent puis on le supprime {
-
-checkdir() {
-    if [ -e $TMPFILE ]; then
-        rm -fr $TMPFILE
-    else
-        echo "le fichier $TMPFILE n'existe pas"
-    fi
+# Envoie la notification Discord
+sendDiscordNotification() {
+    curl -s -H "Content-Type: application/json" -X POST -d "{
+        \"username\": \"$BOTNAME\",
+        \"avatar_url\": \"$AVATAR_URL\",
+        \"embeds\": [{
+            \"color\": 12976176,
+            \"title\": \"SSH Notification\",
+            \"thumbnail\": { \"url\": \"$AVATAR_URL\" },
+            \"author\": { \"name\": \"$BOTNAME\", \"icon_url\": \"$AVATAR_URL\" },
+            \"footer\": { \"text\": \"$BOTNAME\", \"icon_url\": \"$AVATAR_URL\" },
+            \"description\": \"**Détails**\n👤 Utilisateur: \`$(whoami)\`\n🖥️ Host: \`$(hostname)\`\n🕐 Connexion: \`$DATE\`\n\n**Adresse IP**\n📡 IP: \`$IP\`\n🌎 Pays: \`$PAYS\`\n🏙️ Ville: \`$VILLE\`\n📠 ISP: \`$ISP\`\",
+            \"timestamp\": \"$(getCurrentTimestamp)\"
+        }]
+    }" "$WEBHOOK" > /dev/null
 }
-checkdir
 
-#~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ }
+# Envoi et nettoyage
+sendDiscordNotification
+if [ $? -eq 0 ]; then
+    echo "Notification envoyée avec succès."
+else
+    echo "Erreur lors de l'envoi de la notification." >&2
+fi
+
+rm -f "$TMPFILE"
