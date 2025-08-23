@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# Génère un rapport sur les 7 derniers jours à partir du journal CSV,
-# envoie par e-mail (si MAIL_TO) et en résumé sur Discord (si WEBHOOK).
 set -Eeuo pipefail
-
 ENV_FILE="/etc/ssh-notify/.env"
 [[ -r "$ENV_FILE" ]] && source "$ENV_FILE"
 
@@ -17,12 +14,9 @@ now_local="$(date +'%F %T')"
 host="$(hostname -f 2>/dev/null || hostname)"
 
 [[ ! -f "$LOG_FILE" ]] && exit 0
-
-# Filtre des 7 derniers jours
 mapfile -t lines < <(awk -F, -v since="$since_iso" '$1>=since' "$LOG_FILE")
 total="${#lines[@]}"
 
-# Agrégations
 declare -A ipCount userCount ipFirst ipLast
 for l in "${lines[@]}"; do
   ts="${l%%,*}"; rest="${l#*,}"
@@ -35,10 +29,10 @@ for l in "${lines[@]}"; do
   ipLast["$ip"]="$ts"
 done
 
-topN(){ declare -n ref="${1}Count"; for k in "${!ref[@]}"; do echo "${ref[$k]} $k"; done | sort -nr | head -5; }
+topN() { declare -n ref="${1}Count"; for k in "${!ref[@]}"; do echo "${ref[$k]} $k"; done | sort -nr | head -5; }
 top_ip="$(topN ip)"; top_user="$(topN user)"
 
-report_text=$(cat <<EOF
+report_text=$(cat <<EOF2
 Rapport SSH-Notify — $host
 Période: 7 derniers jours
 Généré: $now_local
@@ -53,11 +47,10 @@ $(printf '%s\n' "$top_user" | awk '{printf "  - %s (%s)\n",$2,$1}')
 
 Détails IP (première/dernière vue):
 $(for k in "${!ipCount[@]}"; do printf "  - %s: %s hits, %s → %s\n" "$k" "${ipCount[$k]}" "${ipFirst[$k]}" "${ipLast[$k]}"; done | sort -k2nr)
-EOF
+EOF2
 )
 
-# Envoi e-mail (si configuré et MTA dispo)
-send_email(){
+send_email() {
   command -v sendmail >/dev/null 2>&1 || command -v mail >/dev/null 2>&1 || return 1
   if command -v sendmail >/dev/null 2>&1; then
     {
@@ -68,11 +61,11 @@ send_email(){
     printf "%s\n" "$report_text" | mail -a "From: $MAIL_FROM" -s "$MAIL_SUBJECT" "$MAIL_TO"
   fi
 }
+
 [[ -n "$MAIL_TO" ]] && send_email || true
 
-# Envoi Discord (résumé)
 if [[ -n "$WEBHOOK" ]]; then
-  desc=$(printf "Total: **%s** connexions (7 jours)\n\n**Top IP**\n%s\n\n**Top utilisateurs**\n%s\n" \
+  desc=$(printf "Total: **%s** connexions (7 jours)\n\n**Top IP**\n%s\n\n**Top users**\n%s\n" \
     "$total" \
     "$(printf '%s\n' "$top_ip"   | awk '{printf "• `%s` (%s)\n",$2,$1}')" \
     "$(printf '%s\n' "$top_user" | awk '{printf "• `%s` (%s)\n",$2,$1}')")
