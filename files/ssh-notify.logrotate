@@ -1,0 +1,14 @@
+mkdir -p files
+tee files/ssh-notify.logrotate >/dev/null <<'EOF'
+/var/log/ssh-notify.log /var/log/ssh-notify.debug.log {
+    weekly
+    rotate 12
+    missingok
+    notifempty
+    compress
+    delaycompress
+    dateext
+    su root root
+    create 0640 root root
+}
+EOF
