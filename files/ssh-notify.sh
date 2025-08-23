@@ -1,23 +1,22 @@
 #!/usr/bin/env bash
-# SSH-Notify — Notifie l'ouverture d'une session SSH interactive (jamais pour transferts).
-# Ignore: close_session, commandes distantes, SFTP/SCP/rsync, doublons. Crée toujours les logs.
+# SSH-Notify — notifie uniquement les sessions SSH interactives (pas SFTP/SCP/rsync).
 set -Eeuo pipefail
 export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 
 ENV_FILE="/etc/ssh-notify/.env"
 [[ -r "$ENV_FILE" ]] && source "$ENV_FILE"
 
-# Défauts (écrasés par .env)
+# Défauts
 BOTNAME="${BOTNAME:-SSH-Notify}"
 AVATAR_URL="${AVATAR_URL:-}"
 WEBHOOK="${WEBHOOK:-}"
 LOG_FILE="${LOG_FILE:-/var/log/ssh-notify.log}"
-TIMEOUT_SECS="${TIMEOUT_SECS:-4}"
+TIMEOUT_SECS="${TIMEOUT_SECS:-8}"
 RETRY_COUNT="${RETRY_COUNT:-2}"
 QUIET_HOURS="${QUIET_HOURS:-}"
 ONLY_ROOT="${ONLY_ROOT:-false}"
 EXCLUDE_USERS="${EXCLUDE_USERS:-}"
-GEOIP_METHOD="${GEOIP_METHOD:-ipapi}"
+GEOIP_METHOD="${GEOIP_METHOD:-auto}"   # auto | ipapi | ipinfo | none
 DEDUP_WINDOW_SECS="${DEDUP_WINDOW_SECS:-10}"
 LOCAL_POLICY="${LOCAL_POLICY:-label}"   # label | mute | notify
 LOCAL_GEOIP="${LOCAL_GEOIP:-false}"
@@ -25,11 +24,17 @@ SHOW_IFACE_LOCAL="${SHOW_IFACE_LOCAL:-true}"
 DEBUG="${DEBUG:-false}"
 DEBUG_LOG="${DEBUG_LOG:-/var/log/ssh-notify.debug.log}"
 
-# Assurer l'existence des logs
+# Assurer logs
 mkdir -p "$(dirname "$LOG_FILE")" "$(dirname "$DEBUG_LOG")" 2>/dev/null || true
 touch "$LOG_FILE" "$DEBUG_LOG" 2>/dev/null || true
 chmod 0640 "$LOG_FILE" "$DEBUG_LOG" 2>/dev/null || true
 log_debug(){ [[ "$DEBUG" == "true" ]] && printf '%s | %s\n' "$(date +'%F %T')" "$*" >> "$DEBUG_LOG" 2>/dev/null || true; }
+
+# 👍 Ne s'exécute QUE pour le service PAM 'sshd'
+if [[ "${PAM_SERVICE:-}" != "sshd" ]]; then
+  log_debug "exit: PAM_SERVICE='${PAM_SERVICE:-}' != sshd"
+  exit 0
+fi
 
 # Contexte
 PAMTYPE="${PAM_TYPE:-}"; USER_NAME="${PAM_USER:-${USER:-unknown}}"
@@ -41,7 +46,7 @@ TS_ISO="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"; TS_LOCAL="$(date +'%F %T')"
 
 log_debug "start PAM_TYPE='$PAMTYPE' USER='$USER_NAME' RHOST='$RHOST' SSH_TTY='$SSH_TTY_STR' PAM_TTY='$PAM_TTY_STR' ORIG_CMD='${ORIG_CMD//[$'\r\n']/ }'"
 
-# 1) open_session
+# 1) open_session seulement
 [[ "$PAMTYPE" != "open_session" ]] && { log_debug "exit: PAM_TYPE != open_session"; exit 0; }
 
 # 2) Bloquer transferts (SFTP/SCP/rsync)
@@ -87,9 +92,28 @@ printf '%s\n' "$now_ts" > "$FLAG"
 within_quiet_hours(){ [[ -z "$QUIET_HOURS" ]] && return 1; IFS='-' read -r H1 H2 <<<"$QUIET_HOURS"; now=$((10#$(date +%H))); H1=$((10#$H1)); H2=$((10#$H2)); (( now%=24, H1%=24, H2%=24 )); if (( H1 <= H2 )); then (( now >= H1 && now < H2 )); else (( now >= H1 || now < H2 )); fi; }
 MUTED=false; within_quiet_hours && MUTED=true; $MUTED && log_debug "muted by QUIET_HOURS"
 
-# 8) GeoIP
+# 8) GeoIP (auto-fallback)
 ISP="Unknown"; COUNTRY="Unknown"; CITY="Unknown"
-geoip_lookup(){ case "$GEOIP_METHOD" in none) return 0;; ipapi) data="$(curl -m "$TIMEOUT_SECS" -fsS "https://ipapi.co/${SSH_IP}/json/" || true)";; ipinfo) data="$(curl -m "$TIMEOUT_SECS" -fsS "https://ipinfo.io/${SSH_IP}/json" || true)";; *) return 0;; esac; [[ -z "${data:-}" ]] && return 0; ISP="$(jq -r '.org // .org_name // \"Unknown\"' <<<\"$data\" 2>/dev/null || echo Unknown)"; COUNTRY="$(jq -r '.country_name // .country // \"Unknown\"' <<<\"$data\" 2>/dev/null || echo Unknown)"; CITY="$(jq -r '.city // \"Unknown\"' <<<\"$data\" 2>/dev/null || echo Unknown)"; }
+geoip_lookup(){
+  try_ipapi(){ data="$(curl -m "$TIMEOUT_SECS" -fsS "https://ipapi.co/${SSH_IP}/json/" || true)"; [[ -z "$data" ]] && return 1
+    ISP="$(jq -r '.org // .org_name // "Unknown"' <<<"$data" 2>/dev/null || echo Unknown)"
+    COUNTRY="$(jq -r '.country_name // .country // "Unknown"' <<<"$data" 2>/dev/null || echo Unknown)"
+    CITY="$(jq -r '.city // "Unknown"' <<<"$data" 2>/dev/null || echo Unknown)"
+    [[ "$ISP$COUNTRY$CITY" == *Unknown*Unknown*Unknown* ]] && return 1 || return 0; }
+  try_ipinfo(){ data="$(curl -m "$TIMEOUT_SECS" -fsS "https://ipinfo.io/${SSH_IP}/json" || true)"; [[ -z "$data" ]] && return 1
+    ISP="$(jq -r '.org // .org_name // "Unknown"' <<<"$data" 2>/dev/null || echo Unknown)"
+    COUNTRY="$(jq -r '.country // "Unknown"' <<<"$data" 2>/dev/null || echo Unknown)"
+    CITY="$(jq -r '.city // "Unknown"' <<<"$data" 2>/dev/null || echo Unknown)"
+    [[ "$ISP$COUNTRY$CITY" == *Unknown*Unknown*Unknown* ]] && return 1 || return 0; }
+  case "$GEOIP_METHOD" in
+    none) return 0;;
+    ipapi)  try_ipapi  || true ;;
+    ipinfo) try_ipinfo || true ;;
+    auto|"") try_ipapi || try_ipinfo || true ;;
+    *) try_ipapi || try_ipinfo || true ;;
+  esac
+}
+
 IFACE_INFO=""
 if $IS_PRIVATE; then
   [[ "$LOCAL_GEOIP" == "true" ]] && geoip_lookup || { ISP="Réseau local (RFC1918)"; COUNTRY="Local"; CITY="LAN"; }
