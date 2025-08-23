@@ -1,0 +1,9 @@
+[Unit]
+Description=Lancer le rapport SSH-Notify chaque dimanche 06:00
+
+[Timer]
+OnCalendar=Sun *-*-* 06:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
