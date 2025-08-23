@@ -2,35 +2,210 @@
 <img alt="SSH-NOTIFY" src="https://i.ibb.co/JvngrD9/ssh.png" width="457" height="289" >
 </p>
 
-Ce script à pour but de vous signaler qui se connecte sur votre serveur via une notification sur discord. Lors d'une connexion ssh sur votre serveur.
+# SSH-Notify
 
-### Dépendances
+**SSH-Notify** envoie une notification Discord à chaque **connexion SSH interactive** (shell) sur votre serveur — plus de spam lors des transferts **SFTP/SCP/rsync**.
 
-- [curl](https://curl.se)
-- [jq](https://stedolan.github.io/jq/)
-- [git](https://git-scm.com)
-- [dnsutils](https://phoenixnap.com/kb/linux-dig-command-examples#:~:text=The%20dig%20command%20in%20Linux,used%20to%20display%20DNS%20information.)
+* ✅ Hook **PAM `open_session`** (fiable, idempotent)
+* ⚙️ **Installateur / désinstalleur** (avec options)
+* 🧩 **`.env`** pour toute la configuration
+* 🧾 **Log CSV** + **logrotate**
+* 📅 **Rapport hebdomadaire** (systemd timer + e-mail optionnel)
+* 🌐 **GeoIP** configurable (ipapi/ipinfo/none)
+* 💤 **Heures muettes** + anti-doublon
+* 🛡️ Politique **LAN** (label/mute/notify)
 
-### 1. Mise en place du script.
+---
 
-1. [Configurer un webhook](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks) dans le channel Discord souhaité
-2. Installer les packages **JQ** , **curl**, **git** `sudo apt install jq curl git dnsutils -y`
-3. Clonez le repo `git clone https://github.com/T-TutoRapide/notify-ssh-login/`. 
-5. Se rendre dans le dossier **notify-ssh-login** `cd notify-ssh-login`.
-6. Déplacer le fichier **ssh-notify.sh** dans le dossier **/etc/profile.d/** `mv ssh-notify.sh /etc/profile.d/`
-7. Rendre le script exécutable `chmod +x /etc/profile.d/ssh-notify.sh`
-8. Ajouter le lien de votre **webhook discord** dans le script.  
-Chercher la ligne **WEBHOOK="votre_url"** et remplacer **votre_url** par le lien du webhook. `sudo nano /etc/profile.d/ssh-notify.sh`.  
-Pour sauvegarder : **ctrl +x** taper **y**  
-9. Redémarrer le service ssh `sudo systemctl restart sshd`.
-10. Et voilà le tour est joué.
+## 🆕 Quoi de neuf (par rapport à l’ancien script v1.x)
 
-### 2. Aperçu 
+* Passage d’un script dans `/etc/profile.d` → à un **hook PAM** (pas de doublons, plus robuste)
+* **Filtrage strict** des transferts : SFTP / SCP / rsync **ignorés**
+* Installation simplifiée : `ssh-notify-install.sh` copie les binaires, ajoute le hook PAM, installe le timer et le logrotate, crée `.env`
+* **.env** centralise le webhook, les heures muettes, la politique LAN, etc.
+* **Rapport hebdo** via Discord et/ou e-mail (bientôt)
+* **Logs** en CSV + rotation automatique
 
-![Screenshot](https://i.ibb.co/PcJxGD7/image.png)
+---
 
+## 📦 Dépendances
 
-## Contributeurs
+* [curl](https://curl.se)
+* [jq](https://stedolan.github.io/jq/)
+* (optionnel) [mailutils](https://mailutils.org/) pour l’e-mail hebdomadaire
+* (pour installer depuis Git) [git](https://git-scm.com)
+
+Sous Debian/Ubuntu :
+
+```bash
+sudo apt update
+sudo apt install -y curl jq mailutils git
+```
+
+---
+
+## 🚀 Installation
+
+1. Cloner le projet :
+
+```bash
+git clone https://github.com/T-TutoRapide/notify-ssh-login
+cd notify-ssh-login
+```
+
+2. Lancer l’install (vous pouvez fournir le webhook en CLI ou le saisir au prompt) :
+
+```bash
+# mode interactif (posera la question si WEBHOOK vide)
+sudo bash ./ssh-notify-install.sh
+
+# ou silencieux avec webhook fourni
+sudo bash ./ssh-notify-install.sh -y --webhook "https://discord.com/api/webhooks/ID/TOKEN"
+```
+
+Ce que fait l’installateur :
+
+* Copie `files/ssh-notify.sh` et `files/ssh-notify-report.sh` → `/usr/local/bin/`
+* Ajoute le hook PAM dans `/etc/pam.d/sshd` :
+
+  ```
+  session optional pam_exec.so seteuid /usr/local/bin/ssh-notify.sh
+  ```
+* Crée `/etc/ssh-notify/.env` depuis `.env.example`
+* Installe `ssh-notify-weekly.service` + `ssh-notify-weekly.timer` (rapport chaque dimanche 06:00)
+* Installe `/etc/logrotate.d/ssh-notify`
+
+---
+
+## ⚙️ Configuration ( `/etc/ssh-notify/.env` )
+
+Les clés importantes :
+
+```ini
+WEBHOOK=""                  # URL Discord
+QUIET_HOURS="23-6"          # heures muettes (vide = désactivé)
+LOCAL_POLICY="label"        # label | mute | notify (comportement en LAN)
+GEOIP_METHOD="ipapi"        # ipapi | ipinfo | none
+EXCLUDE_USERS="backup www-data"
+ONLY_ROOT=false
+
+LOG_FILE="/var/log/ssh-notify.log"
+DEBUG_LOG="/var/log/ssh-notify.debug.log"
+DEBUG=false                 # true pour diagnostiquer, puis remettre false
+
+# E-mail hebdo (optionnel)
+MAIL_TO=""
+MAIL_FROM="ssh-notify@$(hostname -f)"
+MAIL_SUBJECT="[SSH-Notify] Rapport hebdomadaire"
+```
+
+* **LOCAL\_POLICY**
+
+  * `label` : notifie et indique “LAN (privé)”
+  * `mute` : **ne pas** envoyer sur Discord en LAN (log CSV conservé)
+  * `notify` : notifie comme une IP publique
+* **QUIET\_HOURS** : plage d’heures à **ne pas** notifier (ex. `23-6`).
+
+---
+
+## 🧪 Tests rapides
+
+```bash
+# Simuler une connexion interactive (doit notifier)
+PAM_TYPE=open_session PAM_USER=$USER PAM_RHOST=8.8.8.8 SSH_TTY=/dev/pts/1 /usr/local/bin/ssh-notify.sh
+
+# Simuler un transfert (NE DOIT PAS notifier)
+PAM_TYPE=open_session PAM_USER=$USER PAM_RHOST=8.8.8.8 SSH_ORIGINAL_COMMAND='scp -t /tmp' /usr/local/bin/ssh-notify.sh
+```
+
+Vérifier les journaux :
+
+```bash
+tail -n 50 /var/log/ssh-notify.log
+tail -n 50 /var/log/ssh-notify.debug.log
+```
+
+---
+
+## 🔁 Rapport hebdomadaire
+
+Un timer systemd lance `/usr/local/bin/ssh-notify-report.sh` chaque **dimanche 06:00** :
+
+* Résumé envoyé sur Discord (si `WEBHOOK` est défini)
+* Envoi e-mail si `MAIL_TO` est renseigné et `mailutils` installé
+
+Gérer le timer :
+
+```bash
+systemctl status ssh-notify-weekly.timer
+systemctl list-timers | grep ssh-notify
+```
+
+---
+
+## 🧾 Logrotate
+
+Installé automatiquement dans `/etc/logrotate.d/ssh-notify` pour :
+
+* ` /var/log/ssh-notify.log`
+* ` /var/log/ssh-notify.debug.log`
+
+Rotation **hebdomadaire**, 12 archives, compression activée.
+
+Tester une rotation :
+
+```bash
+sudo logrotate -v -f /etc/logrotate.d/ssh-notify
+```
+
+---
+
+## ❌ Désinstallation
+
+```bash
+# supprime scripts, .env, PAM, systemd, logrotate
+sudo bash ./ssh-notify-install.sh --remove
+
+# variantes
+sudo bash ./ssh-notify-install.sh --remove --keep-log
+sudo bash ./ssh-notify-install.sh --remove --purge-packages   # (Debian/Ubuntu) supprime curl jq mailutils
+```
+
+---
+
+## 🐞 Dépannage
+
+* Activer le debug :
+
+  ```bash
+  sudo sed -i 's/^DEBUG=.*/DEBUG=true/' /etc/ssh-notify/.env
+  ```
+
+  Puis regarder : `/var/log/ssh-notify.debug.log`
+
+* Vérifier le hook PAM :
+
+  ```bash
+  tail -n +1 /etc/pam.d/sshd | grep -n 'ssh-notify.sh'
+  ```
+
+* Purger l’anti-doublon (si tests rapprochés) :
+
+  ```bash
+  sudo rm -f /run/ssh-notify/*
+  ```
+
+* Heures muettes actives ? Mettre `QUIET_HOURS=""` pour tester.
+
+---
+
+## ️👀 Aperçu
+
+![Screenshot](https://media.tutorapide.xyz/TW770ZtD1CFC.png)
+
+---
+
+## 🙌 Contributeurs
 
 <table>
   <tr>
@@ -39,7 +214,10 @@ Pour sauvegarder : **ctrl +x** taper **y**
     <td align="center"><a href="https://github.com/Janastinou"><img src="https://avatars2.githubusercontent.com/u/72787716?s=460&u=1f914fd4fbafdcd3bd588cda67ac8dee8ab0e0a1&v=4" width="100px;" alt=""/><br /><sub><b>Janastinou</b></sub></a><br /><a href="https://github.com/Janastinou" title="Contributeur">🛠️</a></td>
     <td align="center"><a href="https://github.com/AbaFranklin"><img src="https://avatars0.githubusercontent.com/u/47056799?s=460&u=5640279318f7a1c6e03a434cf4c273ab62f1762d&v=4" width="100px;" alt=""/><br /><sub><b>AbaFranklin</b></sub></a><br /><a href="https://github.com/AbaFranklin" title="Contributeur">🛠️</a></td>
   </tr>
-  </tr>
 </table>
 
 Fait avec 💖 par [TutoRapide](https://discord.gg/YM9XTZP)
+
+---
+
+Tu veux que je te génère aussi un **CHANGELOG.md** ou un **badge de version** (ex. v2.0) pour le repo ?
