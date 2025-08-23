@@ -208,5 +208,3 @@ sudo bash ./ssh-notify-install.sh --remove --purge-packages   # (Debian/Ubuntu) 
 Fait avec 💖 par [TutoRapide](https://discord.gg/YM9XTZP)
 
 ---
-
-Tu veux que je te génère aussi un **CHANGELOG.md** ou un **badge de version** (ex. v2.0) pour le repo ?
