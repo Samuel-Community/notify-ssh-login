@@ -1,0 +1,6 @@
+[Unit]
+Description=SSH-Notify — service de rapport hebdomadaire
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ssh-notify-report.sh
